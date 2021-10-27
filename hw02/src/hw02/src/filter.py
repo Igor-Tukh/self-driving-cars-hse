@@ -6,14 +6,18 @@ import numpy as np
 from sensor_msgs.msg import LaserScan
 from visualization_msgs.msg import Marker
 from geometry_msgs.msg import Point
+from nav_msgs.msg import OccupancyGrid
 
 eps = 1e-9
 scale = 0.1
+cell_size = 0.1
+grid_size = 150
 
 class Filter:
     def __init__(self):
         self.subscriber = rospy.Subscriber('/base_scan', LaserScan, self.laser_callback)
         self.filtered_points_publisher = rospy.Publisher('/visualization_marker', Marker, queue_size=2)
+        self.map_publisher = rospy.Publisher('/map_topic', OccupancyGrid, queue_size=2)
         self.rate = rospy.Rate(10)
 		
     def laser_callback(self, msg):
@@ -47,6 +51,24 @@ class Filter:
         marker.points = [Point(ranges[i] * np.cos(angles[i]), ranges[i] * np.sin(angles[i]), 0.) for i in range(n) if mask[i]]
         self.rate.sleep()
         self.filtered_points_publisher.publish(marker)
+        
+        grid = OccupancyGrid()
+        grid.header.frame_id = 'base_link'
+        cells = np.zeros((2 * grid_size, 2 * grid_size), dtype=np.int8)
+        
+        grid.data = cells.reshape(-1)
+        
+        # We have to set some metainformation, because the map does not render otherwise
+        grid.info.width = 2 * grid_size
+        grid.info.height = 2 * grid_size
+        grid.info.resolution = cell_size
+        # set the first cell to be in the negative part of the plane
+        grid.info.origin.position.x = -grid_size * cell_size
+        grid.info.origin.position.y = -grid_size * cell_size
+        grid.info.origin.position.z = 0.0
+        
+        self.rate.sleep()
+        self.map_publisher.publish(grid)
         
 rospy.init_node('filter')
 Filter()
