@@ -12,6 +12,7 @@ eps = 1e-9
 scale = 0.1
 cell_size = 0.1
 grid_size = 150
+search_step = 0.01
 
 class Filter:
     def __init__(self):
@@ -57,6 +58,11 @@ class Filter:
         cells = np.zeros((2 * grid_size, 2 * grid_size), dtype=np.int8)
         
         grid.data = cells.reshape(-1)
+        for i in range(n):
+            if not mask[i]:
+                continue
+            x, y = np.cos(angles[i]) * ranges[i], np.sin(angles[i]) * ranges[i]
+            for 
         
         # We have to set some metainformation, because the map does not render otherwise
         grid.info.width = 2 * grid_size
